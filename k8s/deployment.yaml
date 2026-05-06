@@ -1,0 +1,638 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-api
+  namespace: production
+  labels:
+    app: quantum-dl-api
+    tier: frontend
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: quantum-dl-api
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-api
+        tier: frontend
+        version: v1
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchLabels:
+                  app: quantum-dl-api
+              topologyKey: kubernetes.io/hostname
+      containers:
+      - name: api
+        image: quantumai/quantum-dl-api:v2.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+          name: http
+        - containerPort: 8443
+          name: grpc
+        env:
+        - name: ENVIRONMENT
+          value: production
+        - name: LOG_LEVEL
+          value: info
+        - name: MAX_WORKERS
+          value: "8"
+        - name: WORKER_THREADS
+          value: "4"
+        - name: KEEPALIVE_TIMEOUT
+          value: "65"
+        - name: GRACEFUL_SHUTDOWN_TIMEOUT
+          value: "10"
+        - name: MAX_REQUESTS_PER_WORKER
+          value: "10000"
+        - name: REDIS_HOST
+          valueFrom:
+            configMapKeyRef:
+              name: quantum-dl-config
+              key: redis.host
+        - name: REDIS_PORT
+          valueFrom:
+            configMapKeyRef:
+              name: quantum-dl-config
+              key: redis.port
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: quantum-dl-secrets
+              key: database.url
+        - name: API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: quantum-dl-secrets
+              key: api.key
+        resources:
+          requests:
+            cpu: "500m"
+            memory: "512Mi"
+          limits:
+            cpu: "2000m"
+            memory: "2Gi"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          timeoutSeconds: 3
+          failureThreshold: 3
+      - name: envoy
+        image: envoyproxy/envoy:v1.28.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 15001
+          name: envoy-http
+        args:
+        - "--config-path /etc/envoy/envoy.yaml"
+        - "--mode serve"
+        volumeMounts:
+        - name: envoy-config
+          mountPath: /etc/envoy
+          readOnly: true
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+      volumes:
+      - name: envoy-config
+        configMap:
+          name: quantum-dl-envoy-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-api
+  namespace: production
+  labels:
+    app: quantum-dl-api
+spec:
+  type: ClusterIP
+  ports:
+  - port: 8000
+    targetPort: 8000
+    protocol: TCP
+    name: http
+  - port: 8443
+    targetPort: 8443
+    protocol: TCP
+    name: grpc
+  selector:
+    app: quantum-dl-api
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-api-lb
+  namespace: production
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: nlb
+    service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: "*"
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 443
+    targetPort: 8000
+    protocol: TCP
+    name: https
+  - port: 443
+    targetPort: 8443
+    protocol: TCP
+    name: grpcs
+  selector:
+    app: quantum-dl-api
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: quantum-dl-api
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: quantum-dl-api
+  minReplicas: 10
+  maxReplicas: 1000
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+      - type: Percent
+        value: 100
+        periodSeconds: 60
+      - type: Pods
+        value: 10
+        periodSeconds: 60
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+      - type: Percent
+        value: 10
+        periodSeconds: 60
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-worker
+  namespace: production
+  labels:
+    app: quantum-dl-worker
+    tier: backend
+spec:
+  replicas: 50
+  selector:
+    matchLabels:
+      app: quantum-dl-worker
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-worker
+        tier: backend
+    spec:
+      containers:
+      - name: worker
+        image: quantumai/quantum-dl-worker:v2.1.0
+        imagePullPolicy: Always
+        env:
+        - name: MAX_QUEUE_SIZE
+          value: "10000"
+        - name: PREFETCH_COUNT
+          value: "100"
+        - name: GRACEFUL_TIMEOUT
+          value: "30"
+        - name: RESULT_BACKEND
+          value: "redis"
+        - name: BROKER_URL
+          valueFrom:
+            configMapKeyRef:
+              name: quantum-dl-config
+              key: rabbitmq.url
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "4000m"
+            memory: "8Gi"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: quantum-dl-worker
+  namespace: production
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: quantum-dl-worker
+  minReplicas: 50
+  maxReplicas: 500
+  metrics:
+  - type: External
+    external:
+      metric:
+        name: rabbitmq_queue_messages
+        selector:
+          matchLabels:
+            queue: quantum-inference
+      target:
+        type: AverageValue
+        averageValue: "500"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-model-server
+  namespace: production
+  labels:
+    app: quantum-dl-model-server
+    tier: ml
+spec:
+  replicas: 20
+  selector:
+    matchLabels:
+      app: quantum-dl-model-server
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-model-server
+        tier: ml
+    spec:
+      serviceAccountName: quantum-dl-model
+      containers:
+      - name: model-server
+        image: quantumai/quantum-dl-model-server:v2.1.0
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 9000
+          name: inference
+        env:
+        - name: MODEL_CACHE_DIR
+          value: /models
+        - name: MAX_MODEL_LOAD_TIME
+          value: "300"
+        - name: TENSORRT_ENABLED
+          value: "true"
+        - name: GPU_MEMORY_FRACTION
+          value: "0.9"
+        resources:
+          requests:
+            cpu: "2000m"
+            memory: "4Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "4000m"
+            memory: "16Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+        - name: model-cache
+          mountPath: /models
+      - name: nginx
+        image: nginx:1.25-alpine
+        ports:
+        - containerPort: 8080
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+        volumeMounts:
+        - name: nginx-cache
+          mountPath: /cache
+      volumes:
+      - name: model-cache
+        emptyDir:
+          sizeLimit: 100Gi
+      - name: nginx-cache
+        emptyDir:
+          sizeLimit: 10Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-model-server
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - port: 9000
+    targetPort: 9000
+    name: inference
+  selector:
+    app: quantum-dl-model-server
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-postgres
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quantum-dl-postgres
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: quantum_dl
+        - name: POSTGRES_MAX_CONNECTIONS
+          value: "500"
+        - name: POSTGRES_SHARED_BUFFERS
+          value: 4GiB
+        - name: POSTGRES_EFFECTIVE_CACHE_SIZE
+          value: 12GiB
+        - name: POSTGRES_MAINTENANCE_WORK_MEM
+          value: 1GiB
+        - name: POSTGRES_CHECKPOINT_COMPLETION
+          value: "0"
+        - name: POSTGRES_WAL_BUFFERS
+          value: 16MB
+        - name: POSTGRES_DEFAULT_STATISTICS_TARGET
+          value: "400"
+        - name: POSTGRES_RANDOM_PAGE_COST
+          value: "1.1"
+        - name: POSTGRES_EFFECTIVE_IO_CONCURRENCY
+          value: "200"
+        - name: POSTGRES_MAX_WORKER_PROCESSES
+          value: "16"
+        - name: POSTGRES_MAX_PARALLEL_WORKERS_PER_GATHER
+          value: "8"
+        - name: POSTGRES_MAX_PARALLEL_WORKERS
+          value: "16"
+        - name: POSTGRES_MAX_PARALLEL_GATHER
+          value: "8"
+        resources:
+          requests:
+            cpu: "4000m"
+            memory: "8Gi"
+          limits:
+            cpu: "8000m"
+            memory: "16Gi"
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:v0.15.0
+        ports:
+        - containerPort: 9187
+        env:
+        - name: DATA_SOURCE_NAME
+          value: postgres://postgres:password@localhost:5432/postgres
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: quantum-dl-postgres-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-postgres
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5432
+    targetPort: 5432
+  selector:
+    app: quantum-dl-postgres
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quantum-dl-postgres-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ssd
+  resources:
+    requests:
+      storage: 1Ti
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-redis-cluster
+  namespace: production
+spec:
+  replicas: 6
+  selector:
+    matchLabels:
+      app: quantum-dl-redis
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7.2-alpine
+        ports:
+        - containerPort: 6379
+        - containerPort: 16379
+        command:
+        - redis-server
+        - --cluster-enabled
+        - "yes"
+        - --cluster-config-file
+        - /data/nodes.conf
+        - --maxmemory
+        - 10gb
+        - --maxmemory-policy
+        - allkeys-lru
+        - --tcp-keepalive
+        - "300"
+        - --timeout
+        - "0"
+        - --activerehashing
+        - "no"
+        - --lazyfree-lazy-eviction
+        - "yes"
+        - --lazyfree-lazy-expire
+        - "yes"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "12Gi"
+          limits:
+            cpu: "2000m"
+            memory: "16Gi"
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      - name: redis-exporter
+        image: oliver006/redis_exporter:v1.54.0
+        ports:
+        - containerPort: 9121
+        env:
+        - name: REDIS_ADDR
+          value: localhost:6379
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "64Mi"
+      volumes:
+      - name: redis-data
+        persistentVolumeClaim:
+          claimName: quantum-dl-redis-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-redis
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+  - port: 9121
+    targetPort: 9121
+  selector:
+    app: quantum-dl-redis
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quantum-dl-redis-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ssd
+  resources:
+    requests:
+      storage: 100Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quantum-dl-rabbitmq
+  namespace: production
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: quantum-dl-rabbitmq
+  template:
+    metadata:
+      labels:
+        app: quantum-dl-rabbitmq
+    spec:
+      containers:
+      - name: rabbitmq
+        image: rabbitmq:3.12-management-alpine
+        ports:
+        - containerPort: 5672
+        - containerPort: 15672
+        env:
+        - name: RABBITMQ_DEFAULT_USER
+          value: quantum
+        - name: RABBITMQ_DEFAULT_PASS
+          valueFrom:
+            secretKeyRef:
+              name: quantum-dl-secrets
+              key: rabbitmq.password
+        - name: RABBITMQ_DEFAULT_VHOST
+          value: quantum_dl
+        - name: RABBITMQ_VM_MEMORY_HIGH_WATERMARK
+          value: "0.8"
+        - name: RABBITMQ_disk_free_limit
+          value: "1GB"
+        - name: RABBITMQ_MINDISC
+          value: "500000"
+        - name: RABBITMQ_MAX_CHANNELS
+          value: "5000"
+        - name: RABBITMQ_CHANNEL_MAX
+          value: "2048"
+        - name: RABBITMQ_FRAME_MAX
+          value: "131072"
+        - name: RABBITMQ_FLOW_CONTROL
+          value: "true"
+        - name: RABBITMQ_DISK_MONITOR_TIME_GRANULARITY
+          value: "5000"
+        resources:
+          requests:
+            cpu: "1000m"
+            memory: "2Gi"
+          limits:
+            cpu: "2000m"
+            memory: "4Gi"
+        volumeMounts:
+        - name: rabbitmq-data
+          mountPath: /var/lib/rabbitmq
+      volumes:
+      - name: rabbitmq-data
+        persistentVolumeClaim:
+          claimName: quantum-dl-rabbitmq-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quantum-dl-rabbitmq
+  namespace: production
+spec:
+  type: ClusterIP
+  ports:
+  - port: 5672
+    targetPort: 5672
+  - port: 15672
+    targetPort: 15672
+  selector:
+    app: quantum-dl-rabbitmq
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quantum-dl-rabbitmq-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: ssd
+  resources:
+    requests:
+      storage: 50Gi
