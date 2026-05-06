@@ -1,0 +1,174 @@
+# Quantum DL Platform - Privacy-First Mobile App
+============================================
+# Supports: Android, iOS, Windows, macOS, Linux, Web
+
+# pubspec.yaml - Flutter dependencies
+name: quantum_dl_app
+description: Privacy-first Quantum Deep Learning Platform
+publish_to: 'https://github.com/quantum-dl'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # HTTP/API
+  dio: ^5.3.0
+  retrofit: ^4.1.0
+  
+  # State Management
+  flutter_bloc: ^8.1.3
+  riverpod: ^2.4.0
+  
+  # Local Storage (Privacy-first)
+  flutter_secure_storage: ^9.0.0
+  hive: ^2.2.3
+  sqflite: ^2.3.0
+  
+  # Encryption (Privacy)
+  encrypt: ^5.0.3
+  pointycastle: ^3.7.3
+  crypto: ^3.0.3
+  
+  # UI
+  flutter/material.dart: any
+  google_fonts: ^6.1.0
+  fl_chart: ^0.65.0
+  
+  # ML Inference (On-device)
+  tflite_flutter: ^0.9.0
+  tensorflow: ^0.1.0
+  
+  # Sensors/Edge
+  sensors_plus: ^4.0.0
+  location: ^5.0.0
+  camera: ^0.10.8
+  
+  # Notifications
+  flutter_local_notifications: ^16.1.0
+  firebase_messaging: ^14.6.0
+  
+  # Auth
+  local_auth: ^2.1.0
+  oauth2_client: ^3.2.0
+  
+  # Charts
+  fl_chart: ^0.65.0
+  
+  # Utils
+  intl: ^0.18.0
+  uuid: ^4.2.0
+  shared_preferences: ^2.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+  build_runner: ^2.4.0
+
+flutter:
+  uses-material-design: true
+  
+  assets:
+    - assets/
+    - assets/models/
+    - assets/icons/
+  
+  fonts:
+    - family: Quantum
+      fonts:
+        - asset: assets/fonts/Quantum-Regular.ttf
+        - asset: assets/fonts/Quantum-Bold.ttf
+          weight: 700
+
+# Native configurations
+android:
+  package: com.quantumdl.platform
+  minSdkVersion: 24
+  targetSdkVersion: 34
+  
+  permissions:
+    - INTERNET
+    - USE_BIOMETRIC
+    - USE_FINGERPRINT
+    - CAMERA
+    - LOCATION
+    - RECEIVE_BOOT_COMPLETED
+    - VIBRATE
+  
+  signing:
+    keystore: quantum_dl.jks
+    keyAlias: quantum-dl-platform
+    keyPassword: ${KEY_PASSWORD}
+    storePassword: ${KEYSTORE_PASSWORD}
+  
+  privacy:
+    permission_handler:
+      permissions:
+        - android.permission.READ_EXTERNAL_STORAGE
+        - android.permission.WRITE_EXTERNAL_STORAGE
+
+ios:
+  bundleIdentifier: com.quantumdl.platform
+  deploymentTarget: 14.0
+  
+  permissions:
+    - NSCameraUsageDescription
+    - NSLocationWhenInUseUsageDescription
+    - NSFaceIDUsageDescription
+    - NSPhotoLibraryUsageDescription
+  
+  code Signing:
+    automatic
+  
+  privacy:
+    NSPhotoLibraryUsageDescription: Privacy First - Your data stays on your device
+    NSFaceIDUsageDescription: Secure your quantum data
+
+windows:
+  version: 1.0.0
+  icon: assets/icons/app_icon.ico
+  
+  # Privacy: Local inference
+  ml_inference: true
+
+macos:
+  version: 1.0.0
+  entitlements:
+    com.security.security: true
+    com.apple.security.app-sandbox: true
+
+linux:
+  version: 1.0.0
+  icon: assets/icons/app_icon.png
+
+web:
+  version: 1.0.0
+  favicon: assets/icons/favicon.ico
+  
+  # Service Worker for offline
+  service_worker: true
+  service_worker_strategy: cacheFirst
+
+# Build for different platforms
+# ============================================
+# Android APK (Privacy-first - no cloud)
+# flutter build apk --release --target-platform android-arm64
+
+# iOS IPA
+# flutter build ios --release
+
+# Windows EXE
+# flutter build windows --release
+
+# macOS APP
+# flutter build macos --release
+
+# Linux AppImage
+# flutter build linux --release
+
+# Web
+# flutter build web --release
