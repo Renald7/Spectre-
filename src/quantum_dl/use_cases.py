@@ -24,8 +24,8 @@ class QuantumUseCase(ABC):
     """Base class for quantum deep learning use cases."""
     
     @abstractmethod
-    def prepare_data(self) -> Tuple[np.ndarray, np.ndarray]:
-        """Prepare training data."""
+    def prepare_data(self, n_samples: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
+        """Prepare training data with specified number of samples."""
         pass
     
     @abstractmethod
@@ -129,9 +129,9 @@ class FinancialPrediction(QuantumUseCase):
         
         return np.array(X, dtype=np.float32), np.array(y, dtype=np.float32)
     
-    def prepare_data(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_data(self, n_samples: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare training data."""
-        return self.generate_synthetic_data()
+        return self.generate_synthetic_data(n_samples=n_samples)
     
     def train(
         self,
@@ -241,9 +241,9 @@ class QuantumClassifier(QuantumUseCase):
         
         return X, y
     
-    def prepare_data(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_data(self, n_samples: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare classification data."""
-        return self.generate_synthetic_data()
+        return self.generate_synthetic_data(n_samples=n_samples)
     
     def train(
         self,
@@ -362,9 +362,9 @@ class QuantumAnomalyDetector(QuantumUseCase):
         shuffle_idx = np.random.permutation(n_samples)
         return X[shuffle_idx], y[shuffle_idx]
     
-    def prepare_data(self) -> Tuple[np.ndarray, np.ndarray]:
+    def prepare_data(self, n_samples: int = 1000) -> Tuple[np.ndarray, np.ndarray]:
         """Prepare anomaly data."""
-        return self.generate_synthetic_data()
+        return self.generate_synthetic_data(n_samples=n_samples)
     
     def train(
         self,

@@ -109,7 +109,12 @@ class QuantumCircuitLayer:
         Returns:
             Measurement probabilities
         """
+        # Create fresh circuit
         qc = QuantumCircuit(self.num_qubits)
+        
+        # Initial state
+        from qiskit.quantum_info import Statevector
+        sv = Statevector.from_int(0, 2**self.num_qubits)
         
         # Apply embedding if provided
         if embedding_circuit is not None:
@@ -119,8 +124,7 @@ class QuantumCircuitLayer:
         var_circuit = self.get_circuit(params)
         qc.compose(var_circuit, inplace=True)
         
-        # Get statevector and probabilities
-        sv = Statevector([1,0,0,0] + [0]*(2**self.num_qubits-1))
+        # Evolve the statevector
         sv = sv.evolve(qc)
         probs = np.abs(sv.probabilities())**2
         

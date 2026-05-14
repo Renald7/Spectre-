@@ -93,6 +93,7 @@ class HybridQuantumClassicalLayer(layers.Layer):
             inputs_np = inputs.numpy()
             
             outputs = []
+            from qiskit.quantum_info import Statevector
             
             for i in range(inputs_np.shape[0]):
                 classical_data = inputs_np[i]
@@ -109,7 +110,7 @@ class HybridQuantumClassicalLayer(layers.Layer):
                 
                 # Combine and execute
                 full_circuit = embedded_circuit.compose(var_circuit)
-                sv = Statevector([1,0,0,0] + [0]*(2**self.num_qubits-1))
+                sv = Statevector.from_int(0, 2**self.num_qubits)
                 sv = sv.evolve(full_circuit)
                 probs = np.abs(sv.probabilities())**2
                 

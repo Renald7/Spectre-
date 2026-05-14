@@ -48,6 +48,12 @@ class QuantumKernel:
         """Create quantum circuit for data embedding."""
         return self.embedding.iqp_encode(data)
     
+    def _create_sv(self, circuit: QuantumCircuit) -> Statevector:
+        """Create statevector from circuit."""
+        # Start with |0> state
+        sv = Statevector.from_int(0, 2**self.config.num_qubits)
+        return sv.evolve(circuit)
+    
     def compute_kernel_matrix(
         self,
         X: np.ndarray,
@@ -72,13 +78,11 @@ class QuantumKernel:
         
         for i in range(n):
             circuit_i = self._create_circuit(X[i])
-            sv_i = Statevector([1,0,0,0] + [0]*(2**self.config.num_qubits-1))
-            sv_i = sv_i.evolve(circuit_i)
+            sv_i = self._create_sv(circuit_i)
             
             for j in range(m):
                 circuit_j = self._create_circuit(Y[j])
-                sv_j = Statevector([1,0,0,0] + [0]*(2**self.config.num_qubits-1))
-                sv_j = sv_j.evolve(circuit_j)
+                sv_j = self._create_sv(circuit_j)
                 
                 # Compute fidelity: |⟨ψ_i|ψ_j⟩|²
                 overlap = sum(np.conj(sv_i.data) * sv_j.data)

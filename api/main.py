@@ -17,34 +17,33 @@ from quantum_dl.utils.logging import logger, setup_logging
 
 # Load configuration
 config = get_app_config()
-app_config = config.model_config
 
 # Setup logging
-setup_logging(level=app_config.api.log_level.upper())
+setup_logging(level=config.api.log_level.upper())
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
     logger.info("Starting Quantum Deep Learning API")
-    logger.info(f"Configuration: {app_config}")
+    logger.info(f"Configuration: {config}")
     
     # Initialize model on startup
     model_config = HybridModelConfig(
-        num_qubits=app_config.quantum.num_qubits,
-        num_quantum_layers=app_config.quantum.num_layers,
-        input_dim=app_config.model.input_dim,
-        output_dim=app_config.model.output_dim,
-        hidden_dims=app_config.model.hidden_dims,
-        dropout_rate=app_config.model.dropout_rate,
-        learning_rate=app_config.model.learning_rate,
+        num_qubits=config.quantum.num_qubits,
+        num_quantum_layers=config.quantum.num_layers,
+        input_dim=config.model.input_dim,
+        output_dim=config.model.output_dim,
+        hidden_dims=config.model.hidden_dims,
+        dropout_rate=config.model.dropout_rate,
+        learning_rate=config.model.learning_rate,
         embedding_method="angle",
-        ansatz_type=app_config.quantum.ansatz_type,
-        seed=app_config.quantum.seed,
+        ansatz_type=config.quantum.ansatz_type,
+        seed=config.quantum.seed,
     )
     
     try:
-        app.state.model = QuantumDeepLearningModel(config)
+        app.state.model = QuantumDeepLearningModel(model_config)
         logger.info(f"Model initialized: {app.state.model}")
     except Exception as e:
         logger.error(f"Failed to initialize model: {e}")
@@ -57,7 +56,7 @@ async def lifespan(app: FastAPI):
 
 # Create FastAPI app
 app = FastAPI(
-    title=app_config.app_name,
+    title=config.app_name,
     description="Production Quantum Deep Learning API",
     version="1.0.0",
     lifespan=lifespan,
@@ -229,8 +228,8 @@ if __name__ == "__main__":
     
     uvicorn.run(
         "main:app",
-        host=app_config.api.host,
-        port=app_config.api.port,
-        reload=app_config.api.reload,
-        log_level=app_config.api.log_level,
+        host=config.api.host,
+        port=config.api.port,
+        reload=config.api.reload,
+        log_level=config.api.log_level,
     )

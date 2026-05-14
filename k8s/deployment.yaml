@@ -634,5 +634,5 @@ spec:
     - ReadWriteMany
   storageClassName: ssd
   resources:
-    requests:
+    requests: 
       storage: 50Gi
