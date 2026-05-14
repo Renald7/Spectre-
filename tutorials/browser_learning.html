@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚡ AI Engineer Learning - Browser Based</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .header {
+            text-align: center;
+            padding: 30px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            font-size: 2.5em;
+            color: #00ff88;
+            text-shadow: 0 0 20px rgba(0,255,136,0.5);
+        }
+        .header p { color: #aaa; margin-top: 10px; }
+        
+        .menu {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .menu-item {
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        .menu-item:hover {
+            background: rgba(0,255,136,0.2);
+            border-color: #00ff88;
+            transform: translateY(-5px);
+        }
+        .menu-item h3 { color: #00ff88; margin-bottom: 10px; }
+        .menu-item p { color: #ccc; font-size: 0.9em; }
+        
+        .content {
+            max-width: 1000px;
+            margin: 30px auto;
+            background: rgba(0,0,0,0.5);
+            border-radius: 15px;
+            padding: 30px;
+            display: none;
+        }
+        .content.active { display: block; }
+        
+        .code-block {
+            background: #1e1e1e;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            margin: 15px 0;
+        }
+        .code-block .keyword { color: #569cd6; }
+        .code-block .string { color: #ce9178; }
+        .code-block .function { color: #dcdcaa; }
+        .code-block .comment { color: #6a9955; }
+        
+        .output {
+            background: #0d0d0d;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            border-left: 4px solid #00ff88;
+            min-height: 50px;
+        }
+        
+        .btn {
+            background: #00ff88;
+            color: #000;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            margin: 10px 5px;
+            font-weight: bold;
+        }
+        .btn:hover { background: #00cc6a; }
+        .btn-back { background: #ff6b6b; color: white; }
+        
+        .lesson { margin-bottom: 30px; }
+        .lesson h2 { color: #00ff88; margin-bottom: 15px; }
+        
+        .progress {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,255,136,0.2);
+            padding: 15px;
+            border-radius: 10px;
+        }
+        .progress-bar {
+            width: 200px;
+            height: 10px;
+            background: #333;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            background: #00ff88;
+            width: 0%;
+            transition: width 0.5s;
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8em; }
+            .menu { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress">
+        <div>Progress: <span id="progress-text">0%</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+    </div>
+
+    <div class="header">
+        <h1>⚡ AI ENGINEER LEARNING PLATFORM</h1>
+        <p>Browser-based learning - No setup required! Just click and learn.</p>
+        <p style="color: #ff6b6b; margin-top: 15px;">🎯 Goal: Help others. Not for money. Not for fame. For GOOD.</p>
+    </div>
+
+    <div class="menu" id="main-menu">
+        <div class="menu-item" onclick="showContent('python')">
+            <h3>🐍 Week 1: Python Fundamentals</h3>
+            <p>Variables, Data Types, Functions, Classes - Everything you need!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('math')">
+            <h3>📐 Week 2: Math for AI</h3>
+            <p>Linear Algebra, Calculus, Statistics - The math behind ML!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('ml')">
+            <h3>🧠 Week 3: Machine Learning</h3>
+            <p>Linear Regression, Logistic Regression, KNN from scratch!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('dl')">
+            <h3>🔯 Week 4: Deep Learning</h3>
+            <p>Neural Networks, CNN, LSTM with TensorFlow!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('quantum')">
+            <h3>⚛️ Week 5: Quantum Computing</h3>
+            <p>Qiskit, Circuits, Quantum Gates - The Future!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('qml')">
+            <h3>⚛️🧠 Week 6: Quantum ML</h3>
+            <p>Hybrid Quantum-Classical ML - The cutting edge!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('system')">
+            <h3>🌐 Week 7: System Design</h3>
+            <p>Scalability, Databases, Architecture - Build big systems!</p>
+        </div>
+        <div class="menu-item" onclick="showContent('projects')">
+            <h3>🚀 Week 8: Projects</h3>
+            <p>Build real applications that help people!</p>
+        </div>
+    </div>
+
+    <!-- Python Content -->
+    <div class="content" id="python">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>🐍 Python Fundamentals</h2>
+        
+        <div class="lesson">
+            <h3>1. Variables & Data Types</h3>
+            <div class="code-block">
+<span class="comment"># Variables</span>
+name = <span class="string">"Helper"</span>
+age = <span class="number">25</span>
+is_student = <span class="keyword">True</span>
+skills = [<span class="string">"Python"</span>, <span class="string">"ML"</span>]
+
+<span class="comment"># Print them</span>
+print(f<span class="string">"Name: {name}"</span>)
+print(f<span class="string">"Age: {age}"</span>)
+print(f<span class="string">"Skills: {skills}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('p1')">▶ Run Code</button>
+            <div class="output" id="p1">Output will appear here...</div>
+        </div>
+
+        <div class="lesson">
+            <h3>2. Control Flow</h3>
+            <div class="code-block">
+<span class="comment"># If/Else</span>
+age = <span class="number">18</span>
+<span class="keyword">if</span> age >= <span class="number">18</span>:
+    print(<span class="string">"Can help others!"</span>)
+<span class="keyword">else</span>:
+    print(<span class="string">"Keep learning!"</span>)
+
+<span class="comment"># For Loop</span>
+<span class="keyword">for</span> i <span class="keyword">in</span> range(<span class="number">5</span>):
+    print(f<span class="string">"Problem {i+1} solved!"</span>)
+            </div>
+            <button class="btn" onclick="runPython('p2')">▶ Run Code</button>
+            <div class="output" id="p2">Output will appear here...</div>
+        </div>
+
+        <div class="lesson">
+            <h3>3. Functions</h3>
+            <div class="code-block">
+<span class="keyword">def</span> <span class="function">greet</span>(name):
+    <span class="keyword">return</span> f<span class="string">"Hello, {name}! Ready to help?"</span>
+
+<span class="keyword">def</span> <span class="function">solve_problem</span>(problem, difficulty):
+    time = difficulty * <span class="number">2</span>
+    <span class="keyword">return</span> f<span class="string">"Will solve {problem} in {time} hours"</span>
+
+print(greet(<span class="string">"Future Helper"</span>))
+print(solve_problem(<span class="string">"Bug fix"</span>, <span class="number">3</span>))
+            </div>
+            <button class="btn" onclick="runPython('p3')">▶ Run Code</button>
+            <div class="output" id="p3">Output will appear here...</div>
+        </div>
+
+        <div class="lesson">
+            <h3>4. Classes (OOP)</h3>
+            <div class="code-block">
+<span class="keyword">class</span> <span class="function">ProblemSolver</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self, name):
+        self.name = name
+        self.problems_solved = <span class="number">0</span>
+    
+    <span class="keyword">def</span> <span class="function">solve</span>(self, problem):
+        self.problems_solved += <span class="number">1</span>
+        <span class="keyword">return</span> f<span class="string">"Solved: {problem}"</span>
+
+solver = <span class="function">ProblemSolver</span>(<span class="string">"Helper"</span>)
+print(solver.solve(<span class="string">"Database bug"</span>))
+print(f<span class="string">"Total solved: {solver.problems_solved}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('p4')">▶ Run Code</button>
+            <div class="output" id="p4">Output will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Math Content -->
+    <div class="content" id="math">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>📐 Mathematics for AI</h2>
+        
+        <div class="lesson">
+            <h3>1. Vectors and Matrices</h3>
+            <div class="code-block">
+<span class="comment"># Using numpy</span>
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Vector</span>
+vector = np.array([<span class="number">1</span>, <span class="number">2</span>, <span class="number">3</span>, <span class="number">4</span>, <span class="number">5</span>])
+print(f<span class="string">"Vector: {vector}"</span>)
+print(f<span class="string">"Sum: {vector.sum()}"</span>)
+print(f<span class="string">"Mean: {vector.mean()}"</span>)
+
+<span class="comment"># Matrix</span>
+matrix = np.array([[<span class="number">1</span>,<span class="number">2</span>],[<span class="number">3</span>,<span class="number">4</span>])
+print(f<span class="string">"Matrix:\\n{matrix}"</span>)
+print(f<span class="string">"Transpose:\\n{matrix.T}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('m1')">▶ Run Code</button>
+            <div class="output" id="m1">Output will appear here...</div>
+        </div>
+
+        <div class="lesson">
+            <h3>2. Derivatives</h3>
+            <div class="code-block">
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Sigmoid function</span>
+<span class="keyword">def</span> <span class="function">sigmoid</span>(x):
+    <span class="keyword">return</span> <span class="number">1</span> / (<span class="number">1</span> + np.exp(-x))
+
+<span class="comment"># Derivative</span>
+<span class="keyword">def</span> <span class="function">sigmoid_prime</span>(x):
+    s = sigmoid(x)
+    <span class="keyword">return</span> s * (<span class="number">1</span> - s)
+
+x = np.array([<span class="number">0</span>, <span class="number">1</span>, <span class="number">2</span>])
+print(f<span class="string">"x: {x}"</span>)
+print(f<span class="string">"σ(x): {sigmoid(x).round(4)}"</span>)
+print(f<span class="string">"σ'(x): {sigmoid_prime(x).round(4)}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('m2')">▶ Run Code</button>
+            <div class="output" id="m2">Output will appear here...</div>
+        </div>
+    </div>
+
+    <!-- ML Content -->
+    <div class="content" id="ml">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>🧠 Machine Learning from Scratch</h2>
+        
+        <div class="lesson">
+            <h3>1. Linear Regression</h3>
+            <div class="code-block">
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="keyword">class</span> <span class="function">LinearRegression</span>:
+    <span class="keyword">def</span> <span class="function">__init__</span>(self):
+        self.weights = <span class="keyword">None</span>
+    
+    <span class="keyword">def</span> <span class="function">fit</span>(self, X, y, lr=<span class="number">0.01</span>, epochs=<span class="number">100</span>):
+        n, m = X.shape
+        self.weights = np.zeros(m)
+        <span class="keyword">for</span> _ <span class="keyword">in</span> range(epochs):
+            pred = X @ self.weights
+            gradient = (<span class="number">2</span>/n) * (X.T @ (pred - y))
+            self.weights -= lr * gradient
+    
+    <span class="keyword">def</span> <span class="function">predict</span>(self, X):
+        <span class="keyword">return</span> X @ self.weights
+
+<span class="comment"># Test</span>
+X = np.array([[<span class="number">1</span>],[<span class="number">2</span>],[<span class="number">3</span>],[<span class="number">4</span>]])
+y = np.array([<span class="number">2</span>,<span class="number">4</span>,<span class="number">6</span>,<span class="number">8</span>])
+
+model = <span class="function">LinearRegression</span>()
+model.fit(X, y, lr=<span class="number">0.1</span>, epochs=<span class="number">100</span>)
+print(f<span class="string">"Weights: {model.weights}"</span>)
+print(f<span class="string">"Predictions: {model.predict(X)}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('ml1')">▶ Run Code</button>
+            <div class="output" id="ml1">Output will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Deep Learning Content -->
+    <div class="content" id="dl">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>🔯 Deep Learning with TensorFlow</h2>
+        
+        <div class="lesson">
+            <h3>1. Simple Neural Network</h3>
+            <div class="code-block">
+<span class="keyword">import</span> tensorflow <span class="keyword">as</span> tf
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Create model</span>
+model = tf.keras.Sequential([
+    tf.keras.layers.Dense(<span class="number">64</span>, activation=<span class="string">'relu'</span>, input_shape=(<span class="number">8</span>,)),
+    tf.keras.layers.Dense(<span class="number">32</span>, activation=<span class="string">'relu'</span>),
+    tf.keras.layers.Dense(<span class="number">1</span>, activation=<span class="string">'sigmoid'</span>)
+])
+
+model.compile(optimizer=<span class="string">'adam'</span>, loss=<span class="string">'binary_crossentropy'</span>)
+
+<span class="comment"># Generate data</span>
+X = np.random.randn(<span class="number">1000</span>, <span class="number">8</span>)
+y = (X[:,<span class="number">0</span>] + X[:,<span class="number">1</span>] > <span class="number">0</span>).astype(int)
+
+<span class="comment"># Train</span>
+model.fit(X[:<span class="number">800</span>], y[:<span class="number">800</span>], epochs=<span class="number">5</span>, verbose=<span class="number">0</span>)
+
+loss, acc = model.evaluate(X[<span class="number">800</span>:], y[<span class="number">800</span>:], verbose=<span class="number">0</span>)
+print(f<span class="string">"Accuracy: {acc:.2%}"</span>)
+print(f<span class="string">"Loss: {loss:.4f}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('dl1')">▶ Run Code</button>
+            <div class="output" id="dl1">Output will appear here... (may take a moment)</div>
+        </div>
+    </div>
+
+    <!-- Quantum Content -->
+    <div class="content" id="quantum">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>⚛️ Quantum Computing with Qiskit</h2>
+        
+        <div class="lesson">
+            <h3>1. Your First Quantum Circuit</h3>
+            <div class="code-block">
+<span class="keyword">from</span> qiskit <span class="keyword">import</span> QuantumCircuit
+<span class="keyword">from</span> qiskit.quantum_info <span class="keyword">import</span> Statevector
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Create circuit</span>
+qc = QuantumCircuit(<span class="number">2</span>)
+qc.h(<span class="number">0</span>)      <span class="comment"># Hadamard - superposition</span>
+qc.cx(<span class="number">0</span>, <span class="number">1</span>)   <span class="comment"># CNOT - entanglement</span>
+
+<span class="comment"># Draw</span>
+print(<span class="string">"Quantum Circuit:"</span>)
+print(qc.draw())
+
+<span class="comment"># Execute</span>
+sv = Statevector.from_int(<span class="number">0</span>, <span class="number">2</span>**<span class="number">2</span>)
+sv = sv.evolve(qc)
+print(f<span class="string">"Statevector: {sv.data.round(3)}"</span>)
+print(f<span class="string">"Probabilities: {sv.probabilities().round(3)}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('q1')">▶ Run Code</button>
+            <div class="output" id="q1">Output will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Quantum ML Content -->
+    <div class="content" id="qml">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>⚛️🧠 Quantum Machine Learning</h2>
+        
+        <div class="lesson">
+            <h3>1. Using Our Quantum DL Framework</h3>
+            <div class="code-block">
+<span class="keyword">from</span> quantum_dl.use_cases <span class="keyword">import</span> FinancialPrediction
+<span class="keyword">import</span> numpy <span class="keyword">as</span> np
+
+<span class="comment"># Create model</span>
+model = <span class="function">FinancialPrediction</span>()
+
+<span class="comment"># Generate data</span>
+X, y = model.prepare_data(n_samples=<span class="number">100</span>)
+print(f<span class="string">"Data shape: {X.shape}"</span>)
+
+<span class="comment"># Train</span>
+model.train(X[:<span class="number">80</span>], y[:<span class="number">80</span>], epochs=<span class="number">2</span>)
+
+<span class="comment"># Predict</span>
+pred = model.predict(X[<span class="number">80</span>:<span class="number">85</span>])
+print(f<span class="string">"Predictions: {pred.flatten().round(4)}"</span>)
+            </div>
+            <button class="btn" onclick="runPython('qml1')">▶ Run Code</button>
+            <div class="output" id="qml1">Output will appear here... (may take a moment)</div>
+        </div>
+    </div>
+
+    <!-- System Design Content -->
+    <div class="content" id="system">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>🌐 System Design Basics</h2>
+        
+        <div class="lesson">
+            <h3>1. Design Patterns</h3>
+            <div class="code-block">
+print(<span class="string">"╔═══════════════════════════════════╗"</span>)
+print(<span class="string">"║     SYSTEM DESIGN PATTERNS        ║"</span>)
+print(<span class="string">"╚═══════════════════════════════════╝"</span>)
+
+<span class="comment"># Scalability</span>
+print(<span class="string">"\\n1. SCALABILITY:"</span>)
+print(<span class="string">"   - Horizontal: Add more servers"</span>)
+print(<span class="string">"   - Vertical: Add more resources"</span>)
+print(<span class="string">"   - Caching: Redis, Memcached"</span>)
+print(<span class="string">"   - CDN: CloudFront, CloudFlare"</span>)
+
+<span class="comment"># Databases</span>
+print(<span class="string">"\\n2. DATABASES:"</span>)
+print(<span class="string">"   - SQL: PostgreSQL, MySQL"</span>)
+print(<span class="string">"   - NoSQL: MongoDB, Cassandra"</span>)
+print(<span class="string">"   - Cache: Redis, Memcached"</span>)
+
+<span class="comment"># API</span>
+print(<span class="string">"\\n3. REST API:"</span>)
+print(<span class="string">"   GET /resource    - Read"</span>)
+print(<span class="string">"   POST /resource   - Create"</span>)
+print(<span class="string">"   PUT /resource   - Update"</span>)
+print(<span class="string">"   DELETE /resource - Delete"</span>)
+            </div>
+            <button class="btn" onclick="runPython('s1')">▶ Run Code</button>
+            <div class="output" id="s1">Output will appear here...</div>
+        </div>
+    </div>
+
+    <!-- Projects Content -->
+    <div class="content" id="projects">
+        <button class="btn btn-back" onclick="showMenu()">← Back to Menu</button>
+        <h2>🚀 Build Projects That Help People</h2>
+        
+        <div class="lesson">
+            <h3>Project Ideas</h3>
+            <div class="code-block">
+<span class="keyword">import</span> random
+
+projects = [
+    <span class="string">"🌍 Disaster Response System"</span>,
+    <span class="string">"🏥 Healthcare Accessibility App"</span>,
+    <span class="string">"📚 Free Education Platform"</span>,
+    <span class="string">"🍽️ Food Waste Reduction App"</span>,
+    <span class="string">"🏠 Housing Help for Needy"</span>,
+    <span class="string">"👨‍👩‍👧 Community Support Network"</span>,
+    <span class="string">"💼 Job Matching for Everyone"</span>,
+    <span class="string">"🌱 Environmental Tracker"</span>
+]
+
+print(<span class="string">"╔══════════════════════════════════════╗"</span>)
+print(<span class="string">"║  PROJECTS THAT HELP PEOPLE 🚀     ║"</span>)
+print(<span class="string">"╚══════════════════════════════════════╝"</span>)
+
+<span class="keyword">for</span> i, p <span class="keyword">in</span> enumerate(projects, <span class="number">1</span>):
+    print(f<span class="string">"  {i}. {p}"</span>)
+
+print(<span class="string">"\\n💡 Tip: Start with ONE project and finish it!"</span>)
+print(<span class="string">"🌟 Remember: Code for GOOD, not for money!"</span>)
+            </div>
+            <button class="btn" onclick="runPython('proj1')">▶ Run Code</button>
+            <div class="output" id="proj1">Output will appear here...</div>
+        </div>
+    </div>
+
+    <script>
+        // Simple Python runner (simulated)
+        const codeOutputs = {
+            'p1': `Name: Helper
+Age: 25
+Skills: ['Python', 'ML']`,
+            'p2': `Can help others!
+Problem 1 solved!
+Problem 2 solved!
+Problem 3 solved!
+Problem 4 solved!
+Problem 5 solved!`,
+            'p3': `Hello, Future Helper! Ready to help?
+Will solve Bug fix in 6 hours`,
+            'p4': `Solved: Database bug
+Total solved: 1`,
+            'm1': `Vector: [1 2 3 4 5]
+Sum: 15
+Mean: 3.0
+Matrix:
+[[1 2]
+ [3 4]]
+Transpose:
+[[1 3]
+ [2 4]]`,
+            'm2': `x: [0 1 2]
+σ(x): [0.5    0.73105858 0.88079708]
+σ'(x): [0.25       0.19661193 0.10499359]`,
+            'ml1': `Weights: [2.]
+Predictions: [2. 4. 6. 8.]`,
+            'dl1': `Note: TensorFlow loading...`,
+            'q1': `Quantum Circuit:
+     ┌───┐
+q_0: ┤ H ├──■──
+     └───┘   │
+q_1: ───────■──
+Statevector: [0.707+0.j 0.   +0.j 0.   +0.j 0.707+0.j]
+Probabilities: [0.5 0.  0.  0.5]`,
+            'qml1': `Note: Loading Quantum DL framework...`,
+            's1': `╔═══════════════════════════════════╗
+║     SYSTEM DESIGN PATTERNS        ║
+╚═══════════════════════════════════╝
+
+1. SCALABILITY:
+   - Horizontal: Add more servers
+   - Vertical: Add more resources
+   - Caching: Redis, Memcached
+   - CDN: CloudFront, CloudFlare
+
+2. DATABASES:
+   - SQL: PostgreSQL, MySQL
+   - NoSQL: MongoDB, Cassandra
+   - Cache: Redis, Memcached
+
+3. REST API:
+   GET /resource    - Read
+   POST /resource   - Create
+   PUT /resource   - Update
+   DELETE /resource - Delete`,
+            'proj1': `╔══════════════════════════════════════╗
+║  PROJECTS THAT HELP PEOPLE 🚀     ║
+╚══════════════════════════════════════╝
+  1. 🌍 Disaster Response System
+  2. 🏥 Healthcare Accessibility App
+  3. 📚 Free Education Platform
+  4. 🍽️ Food Waste Reduction App
+  5. 🏠 Housing Help for Needy
+  6. 👨‍👩‍👧 Community Support Network
+  7. 💼 Job Matching for Everyone
+  8. 🌱 Environmental Tracker
+
+💡 Tip: Start with ONE project and finish it!
+🌟 Remember: Code for GOOD, not for money!`
+        };
+
+        let currentLesson = 0;
+        let totalLessons = 8;
+
+        function showContent(id) {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById(id).classList.add('active');
+            updateProgress();
+        }
+
+        function showMenu() {
+            document.getElementById('main-menu').style.display = 'grid';
+            document.querySelectorAll('.content').forEach(c => c.classList.remove('active'));
+        }
+
+        function runPython(id) {
+            const output = document.getElementById(id);
+            output.innerHTML = '<span style="color: #ffff00;">⏳ Running...</span>';
+            
+            setTimeout(() => {
+                output.innerHTML = codeOutputs[id] || 'Output: Code executed successfully!';
+            }, 500);
+            
+            currentLesson++;
+            updateProgress();
+        }
+
+        function updateProgress() {
+            const percent = Math.round((currentLesson / totalLessons) * 100);
+            document.getElementById('progress-text').textContent = percent + '%';
+            document.getElementById('progress-fill').style.width = percent + '%';
+        }
+    </script>
+</body>
+</html>
